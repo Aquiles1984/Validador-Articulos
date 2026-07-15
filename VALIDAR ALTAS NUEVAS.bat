@@ -4,7 +4,7 @@ REM y el Excel de Jose Maria de la red.
 cd /d "%~dp0"
 set /p DESDE="Validar altas creadas DESDE (formato AAAA-MM-DD): "
 echo.
-python validador_articulos_dimac.py --db %DESDE%
+python validador_articulos_dimac.py --db --desde %DESDE%
 echo.
 echo ---------------------------------------------
 echo Se abre el informe visual (INFORME_ALTAS.html) en el navegador.
