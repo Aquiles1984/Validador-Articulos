@@ -313,20 +313,27 @@ def calc_pvp(art, tar):
 # ============================================================
 
 def dry_run(rows, cn):
+    import io, os
+    buf = io.StringIO()
+
+    def out(msg=''):
+        print(msg)
+        buf.write(msg + '\n')
+
     cur = cn.cursor()
     total_new = 0; total_skip = 0
 
     for rd in rows:
-        print(f"\n{'='*65}")
-        print(f"  REF={rd['ref']}  F{rd['familia']}  grupos={sorted(rd['grupos_si'])}")
-        print(f"  '{rd['den']}'  peso={rd['peso']}  long={rd['long']}  perim={rd['perim_t']}")
+        out(f"\n{'='*65}")
+        out(f"  REF={rd['ref']}  F{rd['familia']}  grupos={sorted(rd['grupos_si'])}")
+        out(f"  '{rd['den']}'  peso={rd['peso']}  long={rd['long']}  perim={rd['perim_t']}")
 
         for art in arts_for_row(rd):
             cod = art['codigo']
             cur.execute("SELECT DENOMINACION FROM DB2ADMIN.MAESTRO_DE_ARTICULOS WHERE CODIGO_ARTICULO=?", cod)
             existe = cur.fetchone()
             if existe:
-                print(f"  [SKIP] {cod} — ya existe ({existe[0]})")
+                out(f"  [SKIP] {cod} — ya existe ({existe[0]})")
                 total_skip += 1
                 continue
 
@@ -334,43 +341,44 @@ def dry_run(rows, cn):
             rd2 = art['_rd']
             long_ = art['unidades_art']
 
-            print(f"\n  [CREAR] {cod}  '{art['denominacion']}'")
-            print(f"    tipo={art['tipo']} grupo={grp} fam={art['familia']} tipomod={art['tipomod']}")
-            print(f"    coste={art['coste']:.4f} €/barra  coef={art['coef']}  ud_ext={art['ud_ext']}")
+            out(f"\n  [CREAR] {cod}  '{art['denominacion']}'")
+            out(f"    tipo={art['tipo']} grupo={grp} fam={art['familia']} tipomod={art['tipomod']}")
+            out(f"    coste={art['coste']:.4f} €/barra  coef={art['coef']}  ud_ext={art['ud_ext']}")
 
-            # Estructura
             if grp == 0 and art['familia'] == 1:
-                print(f"    estructura: (ninguna — F1 G0)")
+                out(f"    estructura: (ninguna — F1 G0)")
             elif grp == 0 and art['familia'] == 2:
-                print(f"    estructura: F2 G0 — poli/comp desde Excel + ENSAMBLADO")
+                out(f"    estructura: F2 G0 — poli/comp desde Excel + ENSAMBLADO")
             else:
                 if grp in GRUPOS_FORMULA_40:
                     cant_acab = round(rd2['perim_t'] * long_, 4)
-                    print(f"    estructura: {rd2['ref']}×1  +  {art['_acabado']}×{cant_acab} (formula=40)")
+                    out(f"    estructura: {rd2['ref']}×1  +  {art['_acabado']}×{cant_acab} (formula=40)")
                 else:
-                    print(f"    estructura: {rd2['ref']}×1  +  {art['_acabado']}×1")
+                    out(f"    estructura: {rd2['ref']}×1  +  {art['_acabado']}×1")
 
-            # Características
-            print(f"    carac: PLANO={rd2['ref']}.JPG  CARAS={rd2['caras']}  PERIM_T={rd2['perim_t']}  PERIM_E={rd2['perim_e']}")
+            out(f"    carac: PLANO={rd2['ref']}.JPG  CARAS={rd2['caras']}  PERIM_T={rd2['perim_t']}  PERIM_E={rd2['perim_e']}")
 
-            # Tarifas
             pvp40, _, _, _ = calc_pvp(art, TARIFAS[0])
             pvp40k, _, _, _ = calc_pvp(art, next(t for t in TARIFAS if t[0] == 40000))
-            print(f"    tarifas: T40={pvp40} €/m  |  40000={pvp40k} €/barra  ({len(TARIFAS)} total)")
+            out(f"    tarifas: T40={pvp40} €/m  |  40000={pvp40k} €/barra  ({len(TARIFAS)} total)")
 
-            # Proveedor
             if grp == 0:
                 piva = 0.0 if art['norma'] == 'TURQUIA' else 21.0
-                print(f"    proveedor: {rd2['prov_int']} ({rd2['ref_prov']}) IVA={piva}  lote={rd2['lote']}  plazo={rd2['plazo']}")
+                out(f"    proveedor: {rd2['prov_int']} ({rd2['ref_prov']}) IVA={piva}  lote={rd2['lote']}  plazo={rd2['plazo']}")
 
-            # Almacén
             min_val = {0: rd2['min_bt'], 1: rd2['min_pl'], 3: rd2['min_bl']}.get(grp, 0)
-            print(f"    almacen: ORIGEN=0 ALMACEN=0 STOCKMIN={min_val}")
+            out(f"    almacen: ORIGEN=0 ALMACEN=0 STOCKMIN={min_val}")
 
             total_new += 1
 
-    print(f"\n{'='*65}")
-    print(f"RESUMEN SIMULACION: {total_new} a crear  |  {total_skip} ya existen")
+    out(f"\n{'='*65}")
+    out(f"RESUMEN SIMULACION: {total_new} a crear  |  {total_skip} ya existen")
+
+    log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'simulacion_log.txt')
+    with open(log_path, 'w', encoding='utf-8') as f:
+        f.write(buf.getvalue())
+    print(f"\nLog guardado en: {log_path}")
+
     cur.close()
 
 # ============================================================
