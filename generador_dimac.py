@@ -16,7 +16,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 # CONFIG
 # ============================================================
 
-EXCEL_PATH   = r'C:\Users\adrian\Desktop\GENERADOR ARTICULOS DIMAC.xlsx'
+EXCEL_PATH   = r'C:\Users\adrian\Desktop\Validador Articulos\GENERADOR ARTICULOS DIMAC.xlsx'
 DSN          = 'GeinprodINGENRED'
 USUARIO      = 60    # CREADOPOR / MODIFICADOPOR en Geinfor
 ESTADO_ART   = 70    # estado activo
