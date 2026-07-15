@@ -3,9 +3,7 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Excel y Access (datos locales, no van al repo)
-*.xlsx
-*.xls
+# Access (datos locales, no van al repo)
 *.accdb
 *.mdb
 
