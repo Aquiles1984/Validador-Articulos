@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% set active = "dashboard" %}
+{% block title %}Dashboard · Dimac{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block breadcrumb %}Inicio{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+  <div class="stat-card danger">
+    <div class="label">Alertas activas</div>
+    <div class="value">{{ stats.alerts }}</div>
+  </div>
+  <div class="stat-card warn">
+    <div class="label">Perfiles listos</div>
+    <div class="value">{{ stats.perfiles_listo }}</div>
+  </div>
+  <div class="stat-card accent">
+    <div class="label">Hojas seguimiento</div>
+    <div class="value">{{ stats.sheets }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">⚠ Artículos parados — sin movimiento {{ "≥" }} 5 días</div>
+  {% if alerts %}
+  <div style="overflow-x:auto">
+  <table class="alert-table">
+    <thead>
+      <tr>
+        <th>Referencia</th>
+        <th>Hoja</th>
+        <th>Días parado</th>
+        <th>Último avance</th>
+        <th>Paso pendiente</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in alerts %}
+      <tr>
+        <td><span class="ref">{{ a.ref }}</span></td>
+        <td><span class="badge badge-accent">{{ a.sheet }}</span></td>
+        <td>
+          {% if a.days >= 15 %}
+            <span class="badge badge-danger">{{ a.days }} días</span>
+          {% elif a.days >= 7 %}
+            <span class="badge badge-warn">{{ a.days }} días</span>
+          {% else %}
+            <span class="badge badge-accent">{{ a.days }} días</span>
+          {% endif %}
+        </td>
+        <td style="color:var(--muted)">{{ a.last }}</td>
+        <td style="font-size:12px">{{ a.pending }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="empty">✓ No hay artículos parados más de 5 días</div>
+  {% endif %}
+</div>
+{% endblock %}

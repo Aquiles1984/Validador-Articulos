@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% set active = key %}
+{% block title %}{{ sheet_name }} · Dimac{% endblock %}
+{% block page_title %}{{ sheet_name }}{% endblock %}
+{% block breadcrumb %}Seguimiento › {{ sheet_name }}{% endblock %}
+
+{% block content %}
+<div class="flex mt-0" style="margin-bottom:20px">
+  <input id="search" class="form-control" style="max-width:280px" placeholder="Buscar referencia…" oninput="filterTable()">
+  <label class="flex" style="margin-left:12px;font-size:13px;color:var(--muted);gap:6px">
+    <input type="checkbox" id="only-pending" onchange="filterTable()"> Solo pendientes
+  </label>
+  <span class="ml-auto" style="font-size:12px;color:var(--muted)" id="count-label"></span>
+</div>
+
+{% if rows %}
+<div class="seg-wrap card" style="padding:0">
+  <table class="seg-table" id="seg-table">
+    <thead>
+      <tr>
+        {% for h in headers %}
+        <th title="{{ h }}">{{ h[:28] }}{% if h|length > 28 %}…{% endif %}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      {% set has_no = row | selectattr('__class__.__name__', 'eq', 'str') | list %}
+      <tr class="{% for v in row %}{% if v.upper() == 'NO' %}cell-parado{% endif %}{% endfor %}"
+          data-ref="{{ row[1] if row|length > 1 else '' }}"
+          data-pending="{% for v in row %}{% if v.upper() == 'NO' %}1{% endif %}{% endfor %}">
+        {% for v in row %}
+        <td class="
+          {% if v.upper() == 'OK' %}cell-ok
+          {% elif v.upper() == 'NO' %}cell-no
+          {% elif v and v[2:3] == '/' and v[5:6] == '/' %}cell-date
+          {% elif loop.index == 2 %}cell-ref
+          {% endif %}
+        ">{{ v }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card"><div class="empty">No hay datos en esta hoja o no está disponible.</div></div>
+{% endif %}
+
+<script>
+function filterTable() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const onlyPending = document.getElementById('only-pending').checked;
+  const rows = document.querySelectorAll('#seg-table tbody tr');
+  let visible = 0;
+  rows.forEach(r => {
+    const ref = (r.dataset.ref || '').toLowerCase();
+    const pending = r.dataset.pending === '1' || r.querySelector('.cell-no');
+    const matchQ = !q || ref.includes(q) || r.textContent.toLowerCase().includes(q);
+    const matchP = !onlyPending || pending;
+    const show = matchQ && matchP;
+    r.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  document.getElementById('count-label').textContent = visible + ' filas';
+}
+document.addEventListener('DOMContentLoaded', () => {
+  filterTable();
+});
+</script>
+{% endblock %}

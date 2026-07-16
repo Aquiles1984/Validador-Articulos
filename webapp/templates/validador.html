@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% set active = "validador" %}
+{% block title %}Validador · Dimac{% endblock %}
+{% block page_title %}Validador de Artículos{% endblock %}
+{% block breadcrumb %}Herramientas › Validador{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:320px 1fr;gap:20px;align-items:start">
+
+  <div class="card">
+    <div class="card-title">Configuración</div>
+
+    <div class="form-group">
+      <label class="form-label">Modo</label>
+      <select id="modo" class="form-control">
+        <option value="todas">Validar todas las altas nuevas</option>
+        <option value="uno">Un artículo específico</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Referencia (opcional)</label>
+      <input id="ref" class="form-control" placeholder="ej. A0004750" />
+    </div>
+
+    <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="runValidar()" id="btn-val">
+      <span>✓</span> Ejecutar Validación
+    </button>
+  </div>
+
+  <div>
+    <div class="flex" style="margin-bottom:12px">
+      <span style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Salida</span>
+      <button class="btn btn-ghost ml-auto" style="font-size:11px;padding:5px 12px" onclick="clearTerminal()">Limpiar</button>
+    </div>
+    <div class="terminal" id="terminal">Listo. Pulsa Ejecutar Validación para comenzar…
+</div>
+  </div>
+</div>
+
+<script>
+function clearTerminal() {
+  document.getElementById('terminal').innerHTML = '';
+}
+
+function appendLine(line) {
+  const t = document.getElementById('terminal');
+  const div = document.createElement('div');
+  if (line.includes('ERROR') || line.includes('✗') || line.includes('FALLO')) div.className = 't-err';
+  else if (line.includes('OK') || line.includes('✓') || line.includes('CORRECTO')) div.className = 't-ok';
+  else if (line.includes('AVISO') || line.includes('WARN')) div.className = 't-skip';
+  else if (line.startsWith('===') || line.startsWith('---')) div.className = 't-sep';
+  div.textContent = line;
+  t.appendChild(div);
+  t.scrollTop = t.scrollHeight;
+}
+
+function runValidar() {
+  clearTerminal();
+  appendLine('── VALIDACIÓN ──────────────────────────────────────────────────');
+  document.getElementById('btn-val').disabled = true;
+  const body = {
+    modo: document.getElementById('modo').value,
+    ref: document.getElementById('ref').value.trim().toUpperCase()
+  };
+  fetch('/validador/run', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
+  }).then(res => {
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    function read() {
+      reader.read().then(({done, value}) => {
+        if (done) { document.getElementById('btn-val').disabled = false; return; }
+        buf += dec.decode(value, {stream: true});
+        const parts = buf.split('\n\n');
+        buf = parts.pop();
+        parts.forEach(p => {
+          if (p.startsWith('data: ')) {
+            const msg = p.slice(6);
+            if (msg === '__END__') { document.getElementById('btn-val').disabled = false; return; }
+            try { appendLine(JSON.parse(msg)); } catch { appendLine(msg); }
+          }
+        });
+        read();
+      });
+    }
+    read();
+  });
+}
+</script>
+{% endblock %}
